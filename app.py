@@ -12,6 +12,12 @@ DB_URL = st.secrets["DATABASE_URL"]
 if DB_URL.startswith("postgres://"):
     DB_URL = DB_URL.replace("postgres://", "postgresql://", 1)
 
+# FORCE SSL ENCRYPTION (Required for Supabase Cloud)
+if "?" not in DB_URL:
+    DB_URL += "?sslmode=require"
+elif "sslmode=" not in DB_URL:
+    DB_URL += "&sslmode=require"
+
 # Create an engine for reading data cleanly
 engine = create_engine(DB_URL)
 
