@@ -76,6 +76,7 @@ if check_password():
                              "🔍 Project Analytics", 
                              "👷 Manage Team", 
                              "🏗️ Manage Projects", 
+                             "💰 Log Payments",
                              "⏱️ Fast Labor Entry", 
                              "💸 Log Expenses",
                              "📈 Update Progress"])
@@ -192,7 +193,45 @@ if check_password():
                     st.error("Project already exists!")
                 finally: conn.close()
         st.dataframe(get_all_projects(), hide_index=True)
-
+# --- NEW VIEW: LOG PAYMENTS ---
+    elif menu == "💰 Log Payments":
+        st.title("💰 Log New Payments")
+        st.write("Did a client just hand you cash or a transfer? Log it here instantly.")
+        
+        projects = get_all_projects()
+        
+        if projects.empty: 
+            st.warning("You need to create a project first.")
+        else:
+            with st.form("add_payment"):
+                st.subheader("💵 Add Money Received")
+                
+                # Question 1
+                sel_project = st.selectbox("1. Which project is paying you?", projects['client_name'])
+                
+                # Question 2
+                new_money = st.number_input("2. How much money did you receive right now? (DH)", min_value=0.0, step=500.0, value=0.0)
+                
+                # The Big Save Button
+                if st.form_submit_button("✅ Save Payment to Database"):
+                    if new_money > 0:
+                        conn = get_db()
+                        c = conn.cursor()
+                        # This automatically adds the new money to the old advance!
+                        c.execute("UPDATE projects SET advance = advance + %s WHERE client_name = %s", (new_money, sel_project))
+                        conn.close()
+                        
+                        st.balloons() # A fun animation to celebrate getting paid!
+                        st.success(f"Awesome! Successfully added {new_money:,.2f} DH to {sel_project}.")
+                    else:
+                        st.error("Please enter an amount greater than 0.")
+            
+            # Show a quick summary of current balances so you can see it updated
+            st.markdown("---")
+            st.subheader("Current Total Advances by Project")
+            updated_projects = get_all_projects()
+            # Only show the relevant columns
+            st.dataframe(updated_projects[['client_name', 'budget', 'advance']], hide_index=True, use_container_width=True)
     # --- VIEW 5: FAST LABOR ENTRY ---
     elif menu == "⏱️ Fast Labor Entry":
         st.title("⏱️ Fast Labor Entry")
