@@ -51,9 +51,16 @@ st.set_page_config(page_title="Newlightemara OS", page_icon="💡", layout="wide
 
 st.markdown("""
     <style>
+        /* Keep your existing clean styling */
         .stButton>button { border-radius: 8px; font-weight: bold; }
         .stMetric { background-color: #f8f9fb; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; }
         div[data-testid="stExpander"] { border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        
+        /* 🔥 NEW: Hide the annoying plus/minus buttons on all number inputs 🔥 */
+        button[title="Step up"], button[title="Step down"] { display: none !important; }
+        input[type="number"] { -moz-appearance: textfield; }
+        input[type="number"]::-webkit-inner-spin-button, 
+        input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
     </style>
 """, unsafe_allow_html=True)
 
