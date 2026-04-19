@@ -309,13 +309,16 @@ if check_password():
                         try:
                             with conn.cursor() as c:
                                 for w_name, days in worker_inputs.items():
-                                    if days > 0:
-                                        tjm = workers[workers['name'] == w_name]['tjm'].values[0]
-                                        cost = days * tjm
+                            if days > 0:
+                                        # Force Pandas numbers into standard Python floats
+                                        tjm = float(workers[workers['name'] == w_name]['tjm'].values[0])
+                                        clean_days = float(days)
+                                        clean_cost = float(clean_days * tjm)
+                                        
                                         c.execute('''INSERT INTO public.labor_logs 
                                                      (date, client_name, worker_name, days, cost) 
                                                      VALUES (%s, %s, %s, %s, %s)''', 
-                                                  (log_date, sel_client, w_name, days, cost))
+                                                  (log_date, sel_client, w_name, clean_days, clean_cost))
                                         logs_added += 1
                             conn.commit() # Commit all inserts together securely
                             if logs_added > 0:
