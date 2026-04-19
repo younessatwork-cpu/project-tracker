@@ -7,6 +7,7 @@ import base64
 import os
 from fpdf import FPDF
 from streamlit_option_menu import option_menu
+import random
 
 # ==========================================
 # 1. ENTERPRISE DATABASE CONFIGURATION
@@ -55,7 +56,7 @@ st.markdown("""
         .stMetric { background-color: #f8f9fb; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; }
         div[data-testid="stExpander"] { border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
         
-        /* Hide the annoying plus/minus buttons on all number inputs */
+        /* 🔥 Hide the annoying plus/minus buttons on all number inputs 🔥 */
         button[title="Step up"], button[title="Step down"] { display: none !important; }
         input[type="number"] { -moz-appearance: textfield; }
         input[type="number"]::-webkit-inner-spin-button, 
@@ -143,6 +144,33 @@ if check_password():
         try: return pd.read_sql(f'SELECT * FROM public.{table}', engine)
         except Exception: return pd.DataFrame()
 
+    # 🔥 NEW: Custom Money Rain Animation
+    def rain_money():
+        rain_html = """
+        <style>
+        @keyframes money-fall {
+            0% { top: -10%; transform: translateX(0px) rotate(0deg); opacity: 1; }
+            100% { top: 110%; transform: translateX(40px) rotate(360deg); opacity: 0; }
+        }
+        .bill {
+            position: fixed;
+            z-index: 9999;
+            font-size: 3.5rem;
+            animation: money-fall linear forwards;
+            pointer-events: none;
+        }
+        </style>
+        """
+        emojis = ['💸', '💵', '💰', '💶']
+        for _ in range(40): 
+            emoji = random.choice(emojis)
+            left_pos = random.randint(0, 100)
+            delay = random.uniform(0, 1.5)
+            duration = random.uniform(2.5, 4.0)
+            rain_html += f'<div class="bill" style="left: {left_pos}%; animation-delay: {delay}s; animation-duration: {duration}s;">{emoji}</div>'
+        
+        st.markdown(rain_html, unsafe_allow_html=True)
+
     # ==========================================
     # VIEW: COMMAND CENTER
     # ==========================================
@@ -223,7 +251,7 @@ if check_password():
                         conn = get_db_connection()
                         try:
                             with conn.cursor() as c:
-                                c.execute("INSERT INTO public.clients (client_name, work_type, budget, advance, total_points) VALUES (%s, %s, %s, %s, %s)", 
+                                c.execute("""INSERT INTO public.clients (client_name, work_type, budget, advance, total_points) VALUES (%s, %s, %s, %s, %s)""", 
                                           (c_name.strip(), c_type, c_budget, c_avance, c_points))
                             conn.commit()
                             st.success("Portfolio successfully initialized.")
@@ -240,9 +268,11 @@ if check_password():
                         if new_money > 0:
                             conn = get_db_connection()
                             try:
-                                with conn.cursor() as c: c.execute("UPDATE public.clients SET advance = advance + %s WHERE client_name = %s", (new_money, sel_client))
+                                with conn.cursor() as c: c.execute("""UPDATE public.clients SET advance = advance + %s WHERE client_name = %s""", (new_money, sel_client))
                                 conn.commit()
-                                st.success("Transaction verified.")
+                                
+                                rain_money() # 🔥 Triggers the money flow!
+                                st.success("Transaction verified. Liquidity added.")
                             finally: conn.close()
 
         st.dataframe(fetch_data('clients'), hide_index=True, use_container_width=True)
