@@ -12,18 +12,18 @@ DB_URL = st.secrets["DATABASE_URL"]
 if DB_URL.startswith("postgres://"):
     DB_URL = DB_URL.replace("postgres://", "postgresql://", 1)
 
-# FORCE SSL ENCRYPTION (Required for Supabase Cloud)
+# FORCE SSL ENCRYPTION
 if "?" not in DB_URL:
     DB_URL += "?sslmode=require"
 elif "sslmode=" not in DB_URL:
     DB_URL += "&sslmode=require"
 
-# Create an engine for reading data cleanly
-engine = create_engine(DB_URL)
+# Create an engine for reading data (Forcing the 'public' schema path)
+engine = create_engine(DB_URL, connect_args={'options': '-c search_path=public'})
 
-# Function to get a fresh connection for writing data
+# Function to get a fresh connection for writing data (Forcing the 'public' schema path)
 def get_db():
-    conn = psycopg2.connect(DB_URL)
+    conn = psycopg2.connect(DB_URL, options="-c search_path=public")
     conn.autocommit = True
     return conn
 
