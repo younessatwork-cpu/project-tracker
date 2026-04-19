@@ -58,7 +58,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Define the logo filename (change this to "logo.jpg" if your image is a JPEG)
-LOGO_FILE = "logo.png" 
+LOGO_FILE = "logo.jpg" 
 
 def check_password():
     if "password_correct" not in st.session_state: st.session_state["password_correct"] = False
