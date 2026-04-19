@@ -309,7 +309,7 @@ if check_password():
                         try:
                             with conn.cursor() as c:
                                 for w_name, days in worker_inputs.items():
-                                if days > 0:
+                                    if days > 0:
                                         # Force Pandas numbers into standard Python floats
                                         tjm = float(workers[workers['name'] == w_name]['tjm'].values[0])
                                         clean_days = float(days)
