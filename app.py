@@ -5,10 +5,8 @@ from sqlalchemy import create_engine
 from datetime import date
 
 # --- 1. CLOUD DATABASE SETUP ---
-# Fetch the secret URL from Streamlit Cloud
 DB_URL = st.secrets["DATABASE_URL"]
 
-# Fix URL prefix for SQLAlchemy compatibility
 if DB_URL.startswith("postgres://"):
     DB_URL = DB_URL.replace("postgres://", "postgresql://", 1)
 
@@ -18,24 +16,23 @@ if "?" not in DB_URL:
 elif "sslmode=" not in DB_URL:
     DB_URL += "&sslmode=require"
 
-# Create an engine for reading data (Forcing the 'public' schema path)
-engine = create_engine(DB_URL, connect_args={'options': '-c search_path=public'})
+# Create an engine for reading data cleanly
+engine = create_engine(DB_URL)
 
-# Function to get a fresh connection for writing data (Forcing the 'public' schema path)
 def get_db():
-    conn = psycopg2.connect(DB_URL, options="-c search_path=public")
+    conn = psycopg2.connect(DB_URL)
     conn.autocommit = True
     return conn
 
-# Create tables in the cloud if they don't exist
+# Create tables explicitly in the 'public' schema
 def create_tables():
     conn = get_db()
     c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS workers (id SERIAL PRIMARY KEY, name TEXT UNIQUE, tjm REAL)''')
-    c.execute('''CREATE TABLE IF NOT EXISTS projects (id SERIAL PRIMARY KEY, client_name TEXT UNIQUE, budget REAL, advance REAL)''')
-    c.execute('''CREATE TABLE IF NOT EXISTS labor_logs (id SERIAL PRIMARY KEY, date TEXT, project_name TEXT, worker_name TEXT, days REAL, cost REAL)''')
-    c.execute('''CREATE TABLE IF NOT EXISTS expenses (id SERIAL PRIMARY KEY, date TEXT, project_name TEXT, item TEXT, amount REAL)''')
-    c.execute('''CREATE TABLE IF NOT EXISTS progress (project_name TEXT PRIMARY KEY, phase1 REAL, phase2 REAL, phase3 REAL, phase4 REAL)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS public.workers (id SERIAL PRIMARY KEY, name TEXT UNIQUE, tjm REAL)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS public.projects (id SERIAL PRIMARY KEY, client_name TEXT UNIQUE, budget REAL, advance REAL)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS public.labor_logs (id SERIAL PRIMARY KEY, date TEXT, project_name TEXT, worker_name TEXT, days REAL, cost REAL)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS public.expenses (id SERIAL PRIMARY KEY, date TEXT, project_name TEXT, item TEXT, amount REAL)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS public.progress (project_name TEXT PRIMARY KEY, phase1 REAL, phase2 REAL, phase3 REAL, phase4 REAL)''')
     conn.close()
 
 create_tables()
@@ -53,7 +50,6 @@ def check_password():
             pwd = st.text_input("Password", type="password")
             
             if st.button("Login"):
-                # YOUR MASTER PASSWORD:
                 if pwd == "Admin2026!": 
                     st.session_state["password_correct"] = True
                     st.rerun()
@@ -76,14 +72,14 @@ if check_password():
                              "🔍 Project Analytics", 
                              "👷 Manage Team", 
                              "🏗️ Manage Projects", 
-                             "💰 Log Payments",
+                             "💰 Log Payments", 
                              "⏱️ Fast Labor Entry", 
                              "💸 Log Expenses",
                              "📈 Update Progress"])
 
-    # --- Helper Functions ---
-    def get_all_workers(): return pd.read_sql('SELECT * FROM workers', engine)
-    def get_all_projects(): return pd.read_sql('SELECT * FROM projects', engine)
+    # --- Helper Functions (Explicitly querying the public schema) ---
+    def get_all_workers(): return pd.read_sql('SELECT * FROM public.workers', engine)
+    def get_all_projects(): return pd.read_sql('SELECT * FROM public.projects', engine)
 
     # --- VIEW 1: MASTER DASHBOARD ---
     if menu == "📊 Master Dashboard":
@@ -91,8 +87,8 @@ if check_password():
         st.markdown("---")
         
         projects_df = get_all_projects()
-        labor_df = pd.read_sql('SELECT * FROM labor_logs', engine)
-        expenses_df = pd.read_sql('SELECT * FROM expenses', engine)
+        labor_df = pd.read_sql('SELECT * FROM public.labor_logs', engine)
+        expenses_df = pd.read_sql('SELECT * FROM public.expenses', engine)
         
         if not projects_df.empty:
             total_budget = pd.to_numeric(projects_df['budget'], errors='coerce').sum()
@@ -117,7 +113,7 @@ if check_password():
                 profit = p_budget - p_labor
                 margin = (profit / p_budget * 100) if p_budget > 0 else 0
                 
-                prog_df = pd.read_sql(f"SELECT * FROM progress WHERE project_name='{p_name}'", engine)
+                prog_df = pd.read_sql(f"SELECT * FROM public.progress WHERE project_name='{p_name}'", engine)
                 if not prog_df.empty:
                     v1, v2, v3, v4 = prog_df['phase1'].values[0], prog_df['phase2'].values[0], prog_df['phase3'].values[0], prog_df['phase4'].values[0]
                     if max(v1, v2, v3, v4) <= 1.0 and sum((v1, v2, v3, v4)) > 0:
@@ -142,7 +138,7 @@ if check_password():
     # --- VIEW 2: PROJECT ANALYTICS ---
     elif menu == "🔍 Project Analytics":
         st.title("🔍 Project Labor Analytics")
-        labor_df = pd.read_sql('SELECT * FROM labor_logs', engine)
+        labor_df = pd.read_sql('SELECT * FROM public.labor_logs', engine)
         if not labor_df.empty:
             summary_df = labor_df.groupby('project_name').agg(
                 Total_Man_Days=('days', 'sum'), Total_Labor_Cost=('cost', 'sum'), Unique_Workers=('worker_name', 'nunique')
@@ -169,7 +165,7 @@ if check_password():
                 conn = get_db()
                 c = conn.cursor()
                 try:
-                    c.execute("INSERT INTO workers (name, tjm) VALUES (%s, %s)", (w_name, w_tjm))
+                    c.execute("INSERT INTO public.workers (name, tjm) VALUES (%s, %s)", (w_name, w_tjm))
                     st.success(f"Added {w_name}!")
                 except psycopg2.IntegrityError:
                     st.error("Worker already exists!")
@@ -187,17 +183,17 @@ if check_password():
                 conn = get_db()
                 c = conn.cursor()
                 try:
-                    c.execute("INSERT INTO projects (client_name, budget, advance) VALUES (%s, %s, %s)", (p_name, p_budget, p_avance))
+                    c.execute("INSERT INTO public.projects (client_name, budget, advance) VALUES (%s, %s, %s)", (p_name, p_budget, p_avance))
                     st.success(f"Project '{p_name}' created!")
                 except psycopg2.IntegrityError:
                     st.error("Project already exists!")
                 finally: conn.close()
         st.dataframe(get_all_projects(), hide_index=True)
-# --- NEW VIEW: LOG PAYMENTS ---
+
+    # --- VIEW 5: LOG PAYMENTS ---
     elif menu == "💰 Log Payments":
         st.title("💰 Log New Payments")
         st.write("Did a client just hand you cash or a transfer? Log it here instantly.")
-        
         projects = get_all_projects()
         
         if projects.empty: 
@@ -205,34 +201,26 @@ if check_password():
         else:
             with st.form("add_payment"):
                 st.subheader("💵 Add Money Received")
-                
-                # Question 1
                 sel_project = st.selectbox("1. Which project is paying you?", projects['client_name'])
-                
-                # Question 2
                 new_money = st.number_input("2. How much money did you receive right now? (DH)", min_value=0.0, step=500.0, value=0.0)
                 
-                # The Big Save Button
                 if st.form_submit_button("✅ Save Payment to Database"):
                     if new_money > 0:
                         conn = get_db()
                         c = conn.cursor()
-                        # This automatically adds the new money to the old advance!
-                        c.execute("UPDATE projects SET advance = advance + %s WHERE client_name = %s", (new_money, sel_project))
+                        c.execute("UPDATE public.projects SET advance = advance + %s WHERE client_name = %s", (new_money, sel_project))
                         conn.close()
-                        
-                        st.balloons() # A fun animation to celebrate getting paid!
+                        st.balloons()
                         st.success(f"Awesome! Successfully added {new_money:,.2f} DH to {sel_project}.")
                     else:
                         st.error("Please enter an amount greater than 0.")
             
-            # Show a quick summary of current balances so you can see it updated
             st.markdown("---")
             st.subheader("Current Total Advances by Project")
             updated_projects = get_all_projects()
-            # Only show the relevant columns
             st.dataframe(updated_projects[['client_name', 'budget', 'advance']], hide_index=True, use_container_width=True)
-    # --- VIEW 5: FAST LABOR ENTRY ---
+
+    # --- VIEW 6: FAST LABOR ENTRY ---
     elif menu == "⏱️ Fast Labor Entry":
         st.title("⏱️ Fast Labor Entry")
         workers, projects = get_all_workers(), get_all_projects()
@@ -264,16 +252,16 @@ if check_password():
                         for w_name, days_worked in worker_inputs.items():
                             if days_worked > 0:
                                 tjm = workers[workers['name'] == w_name]['tjm'].values[0]
-                                c.execute("INSERT INTO labor_logs (date, project_name, worker_name, days, cost) VALUES (%s, %s, %s, %s, %s)",
+                                c.execute("INSERT INTO public.labor_logs (date, project_name, worker_name, days, cost) VALUES (%s, %s, %s, %s, %s)",
                                           (log_date, sel_project, w_name, days_worked, days_worked * tjm))
                                 logs_added += 1
                         conn.close()
                         if logs_added > 0: st.success(f"Logged {logs_added} workers for {sel_project}!")
                         else: st.warning("No logs saved (all were 0 days).")
             st.subheader("Recent Logs")
-            st.dataframe(pd.read_sql('SELECT date, project_name, worker_name, days, cost FROM labor_logs ORDER BY id DESC LIMIT 10', engine), hide_index=True)
+            st.dataframe(pd.read_sql('SELECT date, project_name, worker_name, days, cost FROM public.labor_logs ORDER BY id DESC LIMIT 10', engine), hide_index=True)
 
-    # --- VIEW 6: LOG EXPENSES ---
+    # --- VIEW 7: LOG EXPENSES ---
     elif menu == "💸 Log Expenses":
         st.title("💸 Log Material Expenses")
         projects = get_all_projects()
@@ -287,19 +275,19 @@ if check_password():
                 if st.form_submit_button("Log Expense") and item_desc and amount > 0:
                     conn = get_db()
                     c = conn.cursor()
-                    c.execute("INSERT INTO expenses (date, project_name, item, amount) VALUES (%s, %s, %s, %s)", (exp_date, sel_project, item_desc, amount))
+                    c.execute("INSERT INTO public.expenses (date, project_name, item, amount) VALUES (%s, %s, %s, %s)", (exp_date, sel_project, item_desc, amount))
                     conn.close()
                     st.success("Expense logged.")
-            st.dataframe(pd.read_sql('SELECT * FROM expenses ORDER BY id DESC LIMIT 10', engine), hide_index=True)
+            st.dataframe(pd.read_sql('SELECT * FROM public.expenses ORDER BY id DESC LIMIT 10', engine), hide_index=True)
 
-    # --- VIEW 7: UPDATE PROGRESS ---
+    # --- VIEW 8: UPDATE PROGRESS ---
     elif menu == "📈 Update Progress":
         st.title("📈 Technical Progress Tracker")
         projects = get_all_projects()
         if projects.empty: st.warning("Add Projects first.")
         else:
             sel_project = st.selectbox("Select Project to Update", projects['client_name'])
-            prog_df = pd.read_sql(f"SELECT * FROM progress WHERE project_name='{sel_project}'", engine)
+            prog_df = pd.read_sql(f"SELECT * FROM public.progress WHERE project_name='{sel_project}'", engine)
             
             v1, v2, v3, v4 = 0.0, 0.0, 0.0, 0.0
             if not prog_df.empty:
@@ -319,7 +307,7 @@ if check_password():
                 if st.form_submit_button("Save Progress"):
                     conn = get_db()
                     c = conn.cursor()
-                    c.execute('''INSERT INTO progress (project_name, phase1, phase2, phase3, phase4) 
+                    c.execute('''INSERT INTO public.progress (project_name, phase1, phase2, phase3, phase4) 
                                  VALUES (%s, %s, %s, %s, %s)
                                  ON CONFLICT (project_name) 
                                  DO UPDATE SET phase1=EXCLUDED.phase1, phase2=EXCLUDED.phase2, 
