@@ -6,6 +6,7 @@ from datetime import date
 import base64
 import os
 from fpdf import FPDF
+from streamlit_option_menu import option_menu
 
 # ==========================================
 # 1. ENTERPRISE DATABASE CONFIGURATION
@@ -25,19 +26,19 @@ def init_db():
     conn = get_db_connection()
     try:
         with conn.cursor() as c:
-            c.execute('''CREATE TABLE IF NOT EXISTS public.workers (id SERIAL PRIMARY KEY, name TEXT UNIQUE, tjm REAL)''')
-            c.execute('''CREATE TABLE IF NOT EXISTS public.clients (id SERIAL PRIMARY KEY, client_name TEXT UNIQUE, work_type TEXT, budget REAL, advance REAL)''')
-            c.execute('''CREATE TABLE IF NOT EXISTS public.labor_logs (id SERIAL PRIMARY KEY, date TEXT, client_name TEXT, worker_name TEXT, days REAL, cost REAL)''')
-            c.execute('''CREATE TABLE IF NOT EXISTS public.expenses (id SERIAL PRIMARY KEY, date TEXT, client_name TEXT, item TEXT, amount REAL)''')
-            c.execute('''CREATE TABLE IF NOT EXISTS public.progress (client_name TEXT PRIMARY KEY, phase1 REAL, phase2 REAL, phase3 REAL, phase4 REAL)''')
+            c.execute("""CREATE TABLE IF NOT EXISTS public.workers (id SERIAL PRIMARY KEY, name TEXT UNIQUE, tjm REAL)""")
+            c.execute("""CREATE TABLE IF NOT EXISTS public.clients (id SERIAL PRIMARY KEY, client_name TEXT UNIQUE, work_type TEXT, budget REAL, advance REAL)""")
+            c.execute("""CREATE TABLE IF NOT EXISTS public.labor_logs (id SERIAL PRIMARY KEY, date TEXT, client_name TEXT, worker_name TEXT, days REAL, cost REAL)""")
+            c.execute("""CREATE TABLE IF NOT EXISTS public.expenses (id SERIAL PRIMARY KEY, date TEXT, client_name TEXT, item TEXT, amount REAL)""")
+            c.execute("""CREATE TABLE IF NOT EXISTS public.progress (client_name TEXT PRIMARY KEY, phase1 REAL, phase2 REAL, phase3 REAL, phase4 REAL)""")
             
-            c.execute('''CREATE TABLE IF NOT EXISTS public.site_photos (id SERIAL PRIMARY KEY, upload_date TEXT, client_name TEXT, phase TEXT, photo_data TEXT, notes TEXT)''')
-            c.execute('''CREATE TABLE IF NOT EXISTS public.inventory (id SERIAL PRIMARY KEY, item_name TEXT UNIQUE, category TEXT, quantity REAL, unit TEXT)''')
-            c.execute('''CREATE TABLE IF NOT EXISTS public.inventory_logs (id SERIAL PRIMARY KEY, date TEXT, item_name TEXT, change_amount REAL, site_allocated TEXT, notes TEXT)''')
+            c.execute("""CREATE TABLE IF NOT EXISTS public.site_photos (id SERIAL PRIMARY KEY, upload_date TEXT, client_name TEXT, phase TEXT, photo_data TEXT, notes TEXT)""")
+            c.execute("""CREATE TABLE IF NOT EXISTS public.inventory (id SERIAL PRIMARY KEY, item_name TEXT UNIQUE, category TEXT, quantity REAL, unit TEXT)""")
+            c.execute("""CREATE TABLE IF NOT EXISTS public.inventory_logs (id SERIAL PRIMARY KEY, date TEXT, item_name TEXT, change_amount REAL, site_allocated TEXT, notes TEXT)""")
             
-            c.execute('''ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS total_points REAL DEFAULT 0''')
-            c.execute('''ALTER TABLE public.labor_logs ADD COLUMN IF NOT EXISTS phase TEXT DEFAULT 'Général' ''')
-            c.execute('''ALTER TABLE public.expenses ADD COLUMN IF NOT EXISTS phase TEXT DEFAULT 'Général' ''')
+            c.execute("""ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS total_points REAL DEFAULT 0""")
+            c.execute("""ALTER TABLE public.labor_logs ADD COLUMN IF NOT EXISTS phase TEXT DEFAULT 'Général' """)
+            c.execute("""ALTER TABLE public.expenses ADD COLUMN IF NOT EXISTS phase TEXT DEFAULT 'Général' """)
         conn.commit()
     finally: conn.close()
 
@@ -46,17 +47,15 @@ init_db()
 # ==========================================
 # 2. UI STYLING & SECURITY (REBRANDED)
 # ==========================================
-# Changed the browser tab title to Newlightemara
 st.set_page_config(page_title="Newlightemara OS", page_icon="💡", layout="wide")
 
 st.markdown("""
     <style>
-        /* Keep your existing clean styling */
         .stButton>button { border-radius: 8px; font-weight: bold; }
         .stMetric { background-color: #f8f9fb; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; }
         div[data-testid="stExpander"] { border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
         
-        /* 🔥 NEW: Hide the annoying plus/minus buttons on all number inputs 🔥 */
+        /* Hide the annoying plus/minus buttons on all number inputs */
         button[title="Step up"], button[title="Step down"] { display: none !important; }
         input[type="number"] { -moz-appearance: textfield; }
         input[type="number"]::-webkit-inner-spin-button, 
@@ -64,8 +63,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Define the logo filename (change this to "logo.jpg" if your image is a JPEG)
-LOGO_FILE = "logo.jpg" 
+LOGO_FILE = "logo.png" 
 
 def check_password():
     if "password_correct" not in st.session_state: st.session_state["password_correct"] = False
@@ -73,7 +71,6 @@ def check_password():
         st.markdown("<br><br>", unsafe_allow_html=True)
         col1, col2, col3 = st.columns([1, 1.5, 1])
         with col2:
-            # Safely check for the logo. If it exists, show it. If not, show the text.
             if os.path.exists(LOGO_FILE):
                 st.image(LOGO_FILE, use_container_width=True)
             else:
@@ -102,21 +99,43 @@ if check_password():
         st.sidebar.markdown("### 💡 Newlightemara")
         
     st.sidebar.markdown("---")
-    menu = st.sidebar.radio("Navigation", [
-        "📊 Executive Command Center", 
-        "📈 Bidding Intelligence", 
-        "🏢 Client Portfolios & Sites", 
-        "⏱️ Timesheets & Allocation", 
-        "📦 Procurement & Expenses",
-        "⚙️ Milestone Tracking",
-        "📸 Site Photos (As-Builts)",
-        "🏭 Warehouse Inventory",
-        "📄 Automated Invoicing",
-        "👥 Team & Technician Roster"
-    ], label_visibility="collapsed")
+    
+    with st.sidebar:
+        menu = option_menu(
+            menu_title=None,
+            options=[
+                "Command Center", 
+                "Bidding Intelligence", 
+                "Client Portfolios", 
+                "Timesheets", 
+                "Procurement",
+                "Milestones",
+                "Site Photos",
+                "Warehouse",
+                "Invoicing",
+                "Team Roster"
+            ],
+            icons=[
+                "bar-chart-line", 
+                "graph-up-arrow", 
+                "building", 
+                "clock-history", 
+                "cart-check",
+                "gear",
+                "camera",
+                "box-seam",
+                "receipt",
+                "people"
+            ],
+            default_index=0,
+            styles={
+                "nav-link": {"font-size": "14px", "text-align": "left", "margin":"0px"},
+                "nav-link-selected": {"background-color": "#1E293B", "font-weight": "bold"},
+            }
+        )
     
     st.sidebar.markdown("---")
-    if st.sidebar.button("🚪 Logout"):
+    if st.sidebar.button("🚪 Secure Logout"):
         st.session_state["password_correct"] = False
         st.rerun()
 
@@ -125,9 +144,9 @@ if check_password():
         except Exception: return pd.DataFrame()
 
     # ==========================================
-    # VIEW: EXECUTIVE COMMAND CENTER
+    # VIEW: COMMAND CENTER
     # ==========================================
-    if menu == "📊 Executive Command Center":
+    if menu == "Command Center":
         st.title("Executive Command Center")
         
         clients_df, labor_df, expenses_df = fetch_data('clients'), fetch_data('labor_logs'), fetch_data('expenses')
@@ -168,10 +187,10 @@ if check_password():
     # ==========================================
     # VIEW: BIDDING INTELLIGENCE
     # ==========================================
-    elif menu == "📈 Bidding Intelligence":
+    elif menu == "Bidding Intelligence":
         st.title("Bidding Intelligence")
         clients_df, labor_df, expenses_df = fetch_data('clients'), fetch_data('labor_logs'), fetch_data('expenses')
-        if clients_df.empty or labor_df.empty: st.info("Insufficient data.")
+        if clients_df.empty or labor_df.empty: st.info("Insufficient data to generate historical averages.")
         else:
             analysis_data = []
             for _, row in clients_df.iterrows():
@@ -188,7 +207,7 @@ if check_password():
     # ==========================================
     # VIEW: CLIENT PORTFOLIOS
     # ==========================================
-    elif menu == "🏢 Client Portfolios & Sites":
+    elif menu == "Client Portfolios":
         st.title("Client Portfolios & Sites")
         with st.expander("➕ Register New Client Portfolio", expanded=False):
             with st.form("add_client", clear_on_submit=True):
@@ -231,7 +250,7 @@ if check_password():
     # ==========================================
     # VIEW: TIMESHEETS & ALLOCATION
     # ==========================================
-    elif menu == "⏱️ Timesheets & Allocation":
+    elif menu == "Timesheets":
         st.title("Timesheets & Labor Allocation")
         workers, clients = fetch_data('workers'), fetch_data('clients')
         if workers.empty or clients.empty: st.warning("Requires registered technicians and portfolios.")
@@ -261,8 +280,8 @@ if check_password():
                                         if days > 0:
                                             tjm = float(workers[workers['name'] == w_name]['tjm'].values[0])
                                             clean_days, clean_cost = float(days), float(days) * tjm
-                                            c.execute('''INSERT INTO public.labor_logs (date, client_name, worker_name, days, cost, phase) 
-                                                         VALUES (%s, %s, %s, %s, %s, %s)''', (log_date, sel_client, w_name, clean_days, clean_cost, sel_phase))
+                                            c.execute("""INSERT INTO public.labor_logs (date, client_name, worker_name, days, cost, phase) 
+                                                         VALUES (%s, %s, %s, %s, %s, %s)""", (log_date, sel_client, w_name, clean_days, clean_cost, sel_phase))
                                             logs_added += 1
                                 conn.commit()
                                 if logs_added > 0: st.success(f"{logs_added} allocation records committed.")
@@ -272,7 +291,7 @@ if check_password():
     # ==========================================
     # VIEW: PROCUREMENT & EXPENSES
     # ==========================================
-    elif menu == "📦 Procurement & Expenses":
+    elif menu == "Procurement":
         st.title("Procurement & Site Expenses")
         clients = fetch_data('clients')
         if not clients.empty:
@@ -290,7 +309,7 @@ if check_password():
                             conn = get_db_connection()
                             try:
                                 with conn.cursor() as c:
-                                    c.execute("INSERT INTO public.expenses (date, client_name, item, amount, phase) VALUES (%s, %s, %s, %s, %s)", 
+                                    c.execute("""INSERT INTO public.expenses (date, client_name, item, amount, phase) VALUES (%s, %s, %s, %s, %s)""", 
                                               (exp_date, sel_client, item_desc, amount, sel_phase))
                                 conn.commit()
                                 st.success("Procurement logged successfully.")
@@ -300,7 +319,7 @@ if check_password():
     # ==========================================
     # VIEW: MILESTONE TRACKING
     # ==========================================
-    elif menu == "⚙️ Milestone Tracking":
+    elif menu == "Milestones":
         st.title("Technical Milestone Tracking")
         clients = fetch_data('clients')
         if not clients.empty:
@@ -320,8 +339,8 @@ if check_password():
                     conn = get_db_connection()
                     try:
                         with conn.cursor() as c:
-                            c.execute('''INSERT INTO public.progress (client_name, phase1, phase2, phase3, phase4) VALUES (%s, %s, %s, %s, %s)
-                                         ON CONFLICT (client_name) DO UPDATE SET phase1=EXCLUDED.phase1, phase2=EXCLUDED.phase2, phase3=EXCLUDED.phase3, phase4=EXCLUDED.phase4''', 
+                            c.execute("""INSERT INTO public.progress (client_name, phase1, phase2, phase3, phase4) VALUES (%s, %s, %s, %s, %s)
+                                         ON CONFLICT (client_name) DO UPDATE SET phase1=EXCLUDED.phase1, phase2=EXCLUDED.phase2, phase3=EXCLUDED.phase3, phase4=EXCLUDED.phase4""", 
                                       (sel_client, p1, p2, p3, p4))
                         conn.commit()
                         st.success(f"Milestones updated for {sel_client}.")
@@ -330,7 +349,7 @@ if check_password():
     # ==========================================
     # VIEW: SITE PHOTOS
     # ==========================================
-    elif menu == "📸 Site Photos (As-Builts)":
+    elif menu == "Site Photos":
         st.title("📸 Site Photo Evidence & As-Builts")
         clients = fetch_data('clients')
         if clients.empty: st.warning("Requires active portfolio.")
@@ -351,7 +370,7 @@ if check_password():
                             conn = get_db_connection()
                             try:
                                 with conn.cursor() as c:
-                                    c.execute("INSERT INTO public.site_photos (upload_date, client_name, phase, photo_data, notes) VALUES (%s, %s, %s, %s, %s)", 
+                                    c.execute("""INSERT INTO public.site_photos (upload_date, client_name, phase, photo_data, notes) VALUES (%s, %s, %s, %s, %s)""", 
                                               (str(date.today()), sel_client, sel_phase, base64_string, notes))
                                 conn.commit()
                                 st.success("Image secured and assigned to client portfolio.")
@@ -374,7 +393,7 @@ if check_password():
     # ==========================================
     # VIEW: WAREHOUSE INVENTORY
     # ==========================================
-    elif menu == "🏭 Warehouse Inventory":
+    elif menu == "Warehouse":
         st.title("🏭 Warehouse & Bulk Material")
         tab1, tab2 = st.tabs(["📦 Check-In Stock", "🚚 Allocate to Site"])
         
@@ -391,10 +410,10 @@ if check_password():
                     conn = get_db_connection()
                     try:
                         with conn.cursor() as c:
-                            c.execute('''INSERT INTO public.inventory (item_name, category, quantity, unit) VALUES (%s, %s, %s, %s)
-                                         ON CONFLICT (item_name) DO UPDATE SET quantity = public.inventory.quantity + EXCLUDED.quantity''',
+                            c.execute("""INSERT INTO public.inventory (item_name, category, quantity, unit) VALUES (%s, %s, %s, %s)
+                                         ON CONFLICT (item_name) DO UPDATE SET quantity = public.inventory.quantity + EXCLUDED.quantity""",
                                       (item_name.strip(), category, qty, unit))
-                            c.execute("INSERT INTO public.inventory_logs (date, item_name, change_amount, site_allocated, notes) VALUES (%s, %s, %s, %s, %s)",
+                            c.execute("""INSERT INTO public.inventory_logs (date, item_name, change_amount, site_allocated, notes) VALUES (%s, %s, %s, %s, %s)""",
                                       (str(date.today()), item_name.strip(), qty, "Warehouse Check-In", "Initial Delivery"))
                         conn.commit()
                         st.success(f"Received {qty} {unit} of {item_name}.")
@@ -415,8 +434,8 @@ if check_password():
                         conn = get_db_connection()
                         try:
                             with conn.cursor() as c:
-                                c.execute("UPDATE public.inventory SET quantity = quantity - %s WHERE item_name = %s", (deploy_qty, sel_item))
-                                c.execute("INSERT INTO public.inventory_logs (date, item_name, change_amount, site_allocated, notes) VALUES (%s, %s, %s, %s, %s)",
+                                c.execute("""UPDATE public.inventory SET quantity = quantity - %s WHERE item_name = %s""", (deploy_qty, sel_item))
+                                c.execute("""INSERT INTO public.inventory_logs (date, item_name, change_amount, site_allocated, notes) VALUES (%s, %s, %s, %s, %s)""",
                                           (str(date.today()), sel_item, -deploy_qty, sel_site, "Deployed to field"))
                             conn.commit()
                             st.success(f"Deployed {deploy_qty} to {sel_site}.")
@@ -428,7 +447,7 @@ if check_password():
     # ==========================================
     # VIEW: AUTOMATED INVOICING
     # ==========================================
-    elif menu == "📄 Automated Invoicing":
+    elif menu == "Invoicing":
         st.title("📄 Invoice Generator")
         clients = fetch_data('clients')
         if clients.empty: st.warning("Requires active portfolio.")
@@ -444,7 +463,6 @@ if check_password():
                 pdf = FPDF()
                 pdf.add_page()
                 
-                # If logo exists, print it on the invoice
                 if os.path.exists(LOGO_FILE):
                     try: pdf.image(LOGO_FILE, x=10, y=8, w=33)
                     except: pass
@@ -488,7 +506,7 @@ if check_password():
     # ==========================================
     # VIEW: TEAM ROSTER
     # ==========================================
-    elif menu == "👥 Team & Technician Roster":
+    elif menu == "Team Roster":
         st.title("Team & Technician Roster")
         with st.form("add_worker", clear_on_submit=True):
             c1, c2 = st.columns(2)
@@ -498,7 +516,7 @@ if check_password():
                 if w_name:
                     conn = get_db_connection()
                     try:
-                        with conn.cursor() as c: c.execute("INSERT INTO public.workers (name, tjm) VALUES (%s, %s)", (w_name.strip(), w_tjm))
+                        with conn.cursor() as c: c.execute("""INSERT INTO public.workers (name, tjm) VALUES (%s, %s)""", (w_name.strip(), w_tjm))
                         conn.commit()
                         st.success(f"{w_name} successfully onboarded.")
                     except: st.error("Technician already exists.")
