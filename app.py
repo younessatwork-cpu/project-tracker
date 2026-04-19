@@ -8,8 +8,7 @@ from datetime import date
 # Fetch the secret URL from Streamlit Cloud
 DB_URL = st.secrets["DATABASE_URL"]
 
-# 🔥 THE MAGIC OVERRIDE 🔥
-# Force the port to 5432 (Session Mode) to stop the server from dropping the ID sequence
+# Force the port to 5432 (Session Mode) to keep the connection stable
 DB_URL = DB_URL.replace(":6543", ":5432")
 
 # Fix URL prefix for SQLAlchemy compatibility
@@ -22,12 +21,12 @@ if "?" not in DB_URL:
 elif "sslmode=" not in DB_URL:
     DB_URL += "&sslmode=require"
 
-# Create an engine explicitly locked to the public folder
-engine = create_engine(DB_URL, connect_args={'options': '-c search_path=public'})
+# Clean Engine (No rejected options!)
+engine = create_engine(DB_URL)
 
-# Create a connection specifically locked to the public folder
+# Clean Connection (No rejected options!)
 def get_db():
-    conn = psycopg2.connect(DB_URL, options="-c search_path=public")
+    conn = psycopg2.connect(DB_URL)
     conn.autocommit = True
     return conn
 
