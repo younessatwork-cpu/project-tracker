@@ -31,12 +31,10 @@ def init_db():
             c.execute('''CREATE TABLE IF NOT EXISTS public.expenses (id SERIAL PRIMARY KEY, date TEXT, client_name TEXT, item TEXT, amount REAL)''')
             c.execute('''CREATE TABLE IF NOT EXISTS public.progress (client_name TEXT PRIMARY KEY, phase1 REAL, phase2 REAL, phase3 REAL, phase4 REAL)''')
             
-            # --- NEW TABLES FOR FINAL FEATURES ---
             c.execute('''CREATE TABLE IF NOT EXISTS public.site_photos (id SERIAL PRIMARY KEY, upload_date TEXT, client_name TEXT, phase TEXT, photo_data TEXT, notes TEXT)''')
             c.execute('''CREATE TABLE IF NOT EXISTS public.inventory (id SERIAL PRIMARY KEY, item_name TEXT UNIQUE, category TEXT, quantity REAL, unit TEXT)''')
             c.execute('''CREATE TABLE IF NOT EXISTS public.inventory_logs (id SERIAL PRIMARY KEY, date TEXT, item_name TEXT, change_amount REAL, site_allocated TEXT, notes TEXT)''')
             
-            # Ensure columns exist safely
             c.execute('''ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS total_points REAL DEFAULT 0''')
             c.execute('''ALTER TABLE public.labor_logs ADD COLUMN IF NOT EXISTS phase TEXT DEFAULT 'Général' ''')
             c.execute('''ALTER TABLE public.expenses ADD COLUMN IF NOT EXISTS phase TEXT DEFAULT 'Général' ''')
@@ -46,9 +44,10 @@ def init_db():
 init_db()
 
 # ==========================================
-# 2. UI STYLING & SECURITY
+# 2. UI STYLING & SECURITY (REBRANDED)
 # ==========================================
-st.set_page_config(page_title="Contractor OS", page_icon="⚡", layout="wide")
+# Changed the browser tab title to Newlightemara
+st.set_page_config(page_title="Newlightemara OS", page_icon="💡", layout="wide")
 
 st.markdown("""
     <style>
@@ -58,13 +57,23 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# Define the logo filename (change this to "logo.jpg" if your image is a JPEG)
+LOGO_FILE = "logo.png" 
+
 def check_password():
     if "password_correct" not in st.session_state: st.session_state["password_correct"] = False
     if not st.session_state["password_correct"]:
-        st.markdown("<br><br><h1 style='text-align: center; color: #1E293B;'>⚡ Contractor OS</h1>", unsafe_allow_html=True)
-        st.markdown("<p style='text-align: center; color: #64748B;'>Enterprise Electrical Contracting Management</p>", unsafe_allow_html=True)
+        st.markdown("<br><br>", unsafe_allow_html=True)
         col1, col2, col3 = st.columns([1, 1.5, 1])
         with col2:
+            # Safely check for the logo. If it exists, show it. If not, show the text.
+            if os.path.exists(LOGO_FILE):
+                st.image(LOGO_FILE, use_container_width=True)
+            else:
+                st.markdown("<h1 style='text-align: center; color: #1E293B;'>💡 Newlightemara</h1>", unsafe_allow_html=True)
+            
+            st.markdown("<p style='text-align: center; color: #64748B;'>Enterprise Electrical Contracting Management</p>", unsafe_allow_html=True)
+            
             pwd = st.text_input("System Authentication", type="password", placeholder="Enter Master Password")
             if st.button("Secure Login", use_container_width=True):
                 if pwd == "Admin2026!": 
@@ -79,7 +88,13 @@ def check_password():
 # ==========================================
 if check_password():
     
-    st.sidebar.markdown("### ⚡ System Menu")
+    # Sidebar Branding
+    if os.path.exists(LOGO_FILE):
+        st.sidebar.image(LOGO_FILE, use_container_width=True)
+    else:
+        st.sidebar.markdown("### 💡 Newlightemara")
+        
+    st.sidebar.markdown("---")
     menu = st.sidebar.radio("Navigation", [
         "📊 Executive Command Center", 
         "📈 Bidding Intelligence", 
@@ -87,9 +102,9 @@ if check_password():
         "⏱️ Timesheets & Allocation", 
         "📦 Procurement & Expenses",
         "⚙️ Milestone Tracking",
-        "📸 Site Photos (As-Builts)",        # NEW
-        "🏭 Warehouse Inventory",            # NEW
-        "📄 Automated Invoicing",            # NEW
+        "📸 Site Photos (As-Builts)",
+        "🏭 Warehouse Inventory",
+        "📄 Automated Invoicing",
         "👥 Team & Technician Roster"
     ], label_visibility="collapsed")
     
@@ -306,7 +321,7 @@ if check_password():
                     finally: conn.close()
 
     # ==========================================
-    # VIEW: SITE PHOTOS (NEW)
+    # VIEW: SITE PHOTOS
     # ==========================================
     elif menu == "📸 Site Photos (As-Builts)":
         st.title("📸 Site Photo Evidence & As-Builts")
@@ -320,15 +335,12 @@ if check_password():
                     sel_phase = c2.selectbox("Construction Phase", ["Gaines Ouvertes", "Tirage", "Tableau Final", "Problème/Bloquant"])
                     notes = st.text_input("Technical Notes")
                     
-                    # File uploader handles both mobile camera and desktop files
                     uploaded_file = st.file_uploader("Take Photo or Upload", type=['jpg', 'jpeg', 'png'])
                     
                     if st.form_submit_button("Securely Save to Database"):
                         if uploaded_file is not None:
-                            # Convert image to secure text string for database storage
                             bytes_data = uploaded_file.getvalue()
                             base64_string = base64.b64encode(bytes_data).decode('utf-8')
-                            
                             conn = get_db_connection()
                             try:
                                 with conn.cursor() as c:
@@ -345,7 +357,6 @@ if check_password():
                 archive_client = st.selectbox("Filter Archives by Site", ["All Sites"] + list(clients['client_name']))
                 if archive_client != "All Sites": photos_df = photos_df[photos_df['client_name'] == archive_client]
                 
-                # Display images in a grid
                 cols = st.columns(3)
                 for i, row in photos_df.iterrows():
                     with cols[i % 3]:
@@ -354,11 +365,10 @@ if check_password():
             else: st.info("No photos archived yet.")
 
     # ==========================================
-    # VIEW: WAREHOUSE INVENTORY (NEW)
+    # VIEW: WAREHOUSE INVENTORY
     # ==========================================
     elif menu == "🏭 Warehouse Inventory":
         st.title("🏭 Warehouse & Bulk Material")
-        
         tab1, tab2 = st.tabs(["📦 Check-In Stock", "🚚 Allocate to Site"])
         
         with tab1:
@@ -409,7 +419,7 @@ if check_password():
         st.dataframe(fetch_data('inventory'), hide_index=True, use_container_width=True)
 
     # ==========================================
-    # VIEW: AUTOMATED INVOICING (NEW)
+    # VIEW: AUTOMATED INVOICING
     # ==========================================
     elif menu == "📄 Automated Invoicing":
         st.title("📄 Invoice Generator")
@@ -417,8 +427,6 @@ if check_password():
         if clients.empty: st.warning("Requires active portfolio.")
         else:
             sel_client = st.selectbox("Select Client to Bill", clients['client_name'])
-            
-            # Fetch client financials
             client_data = clients[clients['client_name'] == sel_client].iloc[0]
             budget, advance = float(client_data['budget']), float(client_data['advance'])
             balance_due = budget - advance
@@ -426,18 +434,24 @@ if check_password():
             st.info(f"**Contract:** {budget:,.2f} DH  |  **Paid:** {advance:,.2f} DH  |  **Balance Due:** {balance_due:,.2f} DH")
             
             if st.button("Generer Facture / Generate PDF"):
-                # 1. Build the PDF using FPDF
                 pdf = FPDF()
                 pdf.add_page()
+                
+                # If logo exists, print it on the invoice
+                if os.path.exists(LOGO_FILE):
+                    try: pdf.image(LOGO_FILE, x=10, y=8, w=33)
+                    except: pass
+                
                 pdf.set_font("Arial", style='B', size=16)
-                pdf.cell(200, 10, txt="FACTURE OFFICIELLE / OFFICIAL INVOICE", ln=True, align='C')
+                pdf.cell(200, 10, txt="FACTURE OFFICIELLE / NEWLIGHTEMARA", ln=True, align='C')
+                pdf.ln(10)
                 
                 pdf.set_font("Arial", size=12)
                 pdf.cell(200, 10, txt=f"Date: {date.today()}", ln=True)
                 pdf.cell(200, 10, txt=f"Client: {sel_client}", ln=True)
                 pdf.cell(200, 10, txt=f"Type d'installation: {client_data['work_type']}", ln=True)
                 
-                pdf.line(10, 50, 200, 50)
+                pdf.line(10, 60, 200, 60)
                 pdf.ln(10)
                 
                 pdf.set_font("Arial", style='B', size=12)
@@ -459,20 +473,10 @@ if check_password():
                 pdf.set_font("Arial", style='I', size=10)
                 pdf.cell(200, 10, txt="Merci pour votre confiance. / Thank you for your business.", ln=True, align='C')
                 
-                # 2. Save PDF temporarily to server
                 pdf.output("facture_temp.pdf")
+                with open("facture_temp.pdf", "rb") as pdf_file: PDFbyte = pdf_file.read()
                 
-                # 3. Read it back as bytes for the download button
-                with open("facture_temp.pdf", "rb") as pdf_file:
-                    PDFbyte = pdf_file.read()
-                
-                st.download_button(
-                    label="📥 Download PDF Invoice",
-                    data=PDFbyte,
-                    file_name=f"Facture_{sel_client}.pdf",
-                    mime='application/octet-stream',
-                    type="primary"
-                )
+                st.download_button(label="📥 Download PDF Invoice", data=PDFbyte, file_name=f"Facture_{sel_client}.pdf", mime='application/octet-stream', type="primary")
 
     # ==========================================
     # VIEW: TEAM ROSTER
