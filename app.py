@@ -22,14 +22,15 @@ def init_db():
     conn = get_db_connection()
     try:
         with conn.cursor() as c:
-            c.execute('''CREATE TABLE IF NOT EXISTS public.workers (id SERIAL PRIMARY KEY, name TEXT UNIQUE, tjm REAL)''')
-            c.execute('''CREATE TABLE IF NOT EXISTS public.clients (id SERIAL PRIMARY KEY, client_name TEXT UNIQUE, work_type TEXT, budget REAL, advance REAL)''')
-            c.execute('''CREATE TABLE IF NOT EXISTS public.labor_logs (id SERIAL PRIMARY KEY, date TEXT, client_name TEXT, worker_name TEXT, days REAL, cost REAL)''')
-            c.execute('''CREATE TABLE IF NOT EXISTS public.expenses (id SERIAL PRIMARY KEY, date TEXT, client_name TEXT, item TEXT, amount REAL)''')
-            c.execute('''CREATE TABLE IF NOT EXISTS public.progress (client_name TEXT PRIMARY KEY, phase1 REAL, phase2 REAL, phase3 REAL, phase4 REAL)''')
-            c.execute('''ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS total_points REAL DEFAULT 0''')
-            c.execute('''ALTER TABLE public.labor_logs ADD COLUMN IF NOT EXISTS phase TEXT DEFAULT 'Général'''')
-            c.execute('''ALTER TABLE public.expenses ADD COLUMN IF NOT EXISTS phase TEXT DEFAULT 'Général'''')
+            c.execute("""CREATE TABLE IF NOT EXISTS public.workers (id SERIAL PRIMARY KEY, name TEXT UNIQUE, tjm REAL)""")
+            c.execute("""CREATE TABLE IF NOT EXISTS public.clients (id SERIAL PRIMARY KEY, client_name TEXT UNIQUE, work_type TEXT, budget REAL, advance REAL)""")
+            c.execute("""CREATE TABLE IF NOT EXISTS public.labor_logs (id SERIAL PRIMARY KEY, date TEXT, client_name TEXT, worker_name TEXT, days REAL, cost REAL)""")
+            c.execute("""CREATE TABLE IF NOT EXISTS public.expenses (id SERIAL PRIMARY KEY, date TEXT, client_name TEXT, item TEXT, amount REAL)""")
+            c.execute("""CREATE TABLE IF NOT EXISTS public.progress (client_name TEXT PRIMARY KEY, phase1 REAL, phase2 REAL, phase3 REAL, phase4 REAL)""")
+            
+            c.execute("""ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS total_points REAL DEFAULT 0""")
+            c.execute("""ALTER TABLE public.labor_logs ADD COLUMN IF NOT EXISTS phase TEXT DEFAULT 'Général'""")
+            c.execute("""ALTER TABLE public.expenses ADD COLUMN IF NOT EXISTS phase TEXT DEFAULT 'Général'""")
         conn.commit()
     finally: conn.close()
 
