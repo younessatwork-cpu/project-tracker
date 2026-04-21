@@ -47,7 +47,7 @@ def init_db():
 init_db()
 
 # ==========================================
-# 2. UI STYLING & SECURITY (REBRANDED)
+# 2. UI STYLING & SECURITY
 # ==========================================
 st.set_page_config(page_title="Newlightemara OS", page_icon="💡", layout="wide")
 
@@ -57,13 +57,11 @@ st.markdown("""
         .stMetric { background-color: #f8f9fb; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; }
         div[data-testid="stExpander"] { border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
         
-        /* 🔥 NEW FIX: Nuke Streamlit's specific Step-Up and Step-Down buttons */
+        /* Hide the annoying plus/minus buttons */
         button[data-testid="stNumberInputStepUp"], 
-        button[data-testid="stNumberInputStepDown"] { 
-            display: none !important; 
-        }
+        button[data-testid="stNumberInputStepDown"] { display: none !important; }
         
-        /* Remove default browser spinners */
+        /* Clean inputs */
         input[type="number"] { -moz-appearance: textfield; }
         input[type="number"]::-webkit-inner-spin-button, 
         input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
@@ -78,10 +76,8 @@ def check_password():
         st.markdown("<br><br>", unsafe_allow_html=True)
         col1, col2, col3 = st.columns([1, 1.5, 1])
         with col2:
-            if os.path.exists(LOGO_FILE):
-                st.image(LOGO_FILE, use_container_width=True)
-            else:
-                st.markdown("<h1 style='text-align: center; color: #1E293B;'>💡 Newlightemara</h1>", unsafe_allow_html=True)
+            if os.path.exists(LOGO_FILE): st.image(LOGO_FILE, use_container_width=True)
+            else: st.markdown("<h1 style='text-align: center; color: #1E293B;'>💡 Newlightemara</h1>", unsafe_allow_html=True)
             
             st.markdown("<p style='text-align: center; color: #64748B;'>Enterprise Electrical Contracting Management</p>", unsafe_allow_html=True)
             
@@ -100,11 +96,8 @@ def check_password():
 if check_password():
     
     # Sidebar Branding
-    if os.path.exists(LOGO_FILE):
-        st.sidebar.image(LOGO_FILE, use_container_width=True)
-    else:
-        st.sidebar.markdown("### 💡 Newlightemara")
-        
+    if os.path.exists(LOGO_FILE): st.sidebar.image(LOGO_FILE, use_container_width=True)
+    else: st.sidebar.markdown("### 💡 Newlightemara")
     st.sidebar.markdown("---")
     
     with st.sidebar:
@@ -115,6 +108,7 @@ if check_password():
                 "Bidding Intelligence", 
                 "Client Portfolios", 
                 "Timesheets", 
+                "Payroll & Distribution",  # 🔥 NEW PAYROLL MENU
                 "Procurement",
                 "Milestones",
                 "Site Photos",
@@ -127,6 +121,7 @@ if check_password():
                 "graph-up-arrow", 
                 "building", 
                 "clock-history", 
+                "wallet2",                 # 🔥 WALLET ICON
                 "cart-check",
                 "gear",
                 "camera",
@@ -150,7 +145,6 @@ if check_password():
         try: return pd.read_sql(f'SELECT * FROM public.{table}', engine)
         except Exception: return pd.DataFrame()
 
-    # 🔥 NEW FIX: Dynamic Animation ID (Forces it to run every single time)
     def rain_money():
         uid = str(int(time.time() * 1000)) + str(random.randint(0, 1000))
         rain_html = f"""
@@ -160,11 +154,7 @@ if check_password():
             100% {{ top: 110%; transform: translateX(40px) rotate(360deg); opacity: 0; }}
         }}
         .bill-{uid} {{
-            position: fixed;
-            z-index: 9999;
-            font-size: 3.5rem;
-            animation: money-fall-{uid} linear forwards;
-            pointer-events: none;
+            position: fixed; z-index: 9999; font-size: 3.5rem; animation: money-fall-{uid} linear forwards; pointer-events: none;
         }}
         </style>
         """
@@ -175,7 +165,6 @@ if check_password():
             delay = random.uniform(0, 1.5)
             duration = random.uniform(2.5, 4.0)
             rain_html += f'<div class="bill-{uid}" style="left: {left_pos}%; animation-delay: {delay}s; animation-duration: {duration}s;">{emoji}</div>'
-        
         st.markdown(rain_html, unsafe_allow_html=True)
 
     # ==========================================
@@ -183,7 +172,6 @@ if check_password():
     # ==========================================
     if menu == "Command Center":
         st.title("Executive Command Center")
-        
         clients_df, labor_df, expenses_df = fetch_data('clients'), fetch_data('labor_logs'), fetch_data('expenses')
         
         if not clients_df.empty:
@@ -225,7 +213,7 @@ if check_password():
     elif menu == "Bidding Intelligence":
         st.title("Bidding Intelligence")
         clients_df, labor_df, expenses_df = fetch_data('clients'), fetch_data('labor_logs'), fetch_data('expenses')
-        if clients_df.empty or labor_df.empty: st.info("Insufficient data to generate historical averages.")
+        if clients_df.empty or labor_df.empty: st.info("Insufficient data.")
         else:
             analysis_data = []
             for _, row in clients_df.iterrows():
@@ -249,17 +237,25 @@ if check_password():
                 c1, c2, c3 = st.columns(3)
                 c_name = c1.text_input("Client / Owner Name")
                 c_type = c2.selectbox("Facility Type", ["Villa", "Appartement", "Maison", "Bâtiment Commercial", "Maintenance"])
-                c_points = c3.number_input("Est. Electrical Points", min_value=0, step=5)
+                
+                # 🔥 FIX: value=None makes the box empty
+                c_points = c3.number_input("Est. Electrical Points", min_value=0, step=5, value=None, placeholder="0")
                 c4, c5 = st.columns(2)
-                c_budget = c4.number_input("Gross Contract Value (DH)", min_value=0.0, step=1000.0)
-                c_avance = c5.number_input("Initial Advance Paid (DH)", min_value=0.0, step=1000.0)
+                c_budget = c4.number_input("Gross Contract Value (DH)", min_value=0.0, step=1000.0, value=None, placeholder="0.0")
+                c_avance = c5.number_input("Initial Advance Paid (DH)", min_value=0.0, step=1000.0, value=None, placeholder="0.0")
+                
                 if st.form_submit_button("Initialize Portfolio"):
                     if c_name:
+                        # Fallback to 0 if they left it completely blank
+                        safe_points = c_points or 0
+                        safe_budget = c_budget or 0.0
+                        safe_avance = c_avance or 0.0
+                        
                         conn = get_db_connection()
                         try:
                             with conn.cursor() as c:
                                 c.execute("""INSERT INTO public.clients (client_name, work_type, budget, advance, total_points) VALUES (%s, %s, %s, %s, %s)""", 
-                                          (c_name.strip(), c_type, c_budget, c_avance, c_points))
+                                          (c_name.strip(), c_type, safe_budget, safe_avance, safe_points))
                             conn.commit()
                             st.success("Portfolio successfully initialized.")
                         finally: conn.close()
@@ -270,14 +266,14 @@ if check_password():
                 with st.form("add_payment", clear_on_submit=True):
                     c1, c2 = st.columns([2, 1])
                     sel_client = c1.selectbox("Target Portfolio", clients['client_name'])
-                    new_money = c2.number_input("Liquidity Received (DH)", min_value=0.0, step=500.0)
+                    new_money = c2.number_input("Liquidity Received (DH)", min_value=0.0, step=500.0, value=None, placeholder="0.0")
+                    
                     if st.form_submit_button("Log Transaction"):
-                        if new_money > 0:
+                        if new_money is not None and new_money > 0:
                             conn = get_db_connection()
                             try:
                                 with conn.cursor() as c: c.execute("""UPDATE public.clients SET advance = advance + %s WHERE client_name = %s""", (new_money, sel_client))
                                 conn.commit()
-                                
                                 rain_money()
                                 st.success("Transaction verified. Liquidity added.")
                             finally: conn.close()
@@ -305,7 +301,9 @@ if check_password():
                         cols = st.columns(min(len(active_workers), 4))
                         for i, w_name in enumerate(active_workers):
                             w_tjm = workers[workers['name'] == w_name]['tjm'].values[0]
-                            with cols[i % 4]: worker_inputs[w_name] = st.number_input(f"{w_name} (Rate: {w_tjm})", min_value=0.0, max_value=31.0, step=0.5)
+                            with cols[i % 4]: 
+                                # 🔥 FIX: value=None makes it empty
+                                worker_inputs[w_name] = st.number_input(f"{w_name} (Rate: {w_tjm})", min_value=0.0, max_value=31.0, step=0.5, value=None, placeholder="0.0")
                     
                     if st.form_submit_button("Commit Timesheets"):
                         if active_workers:
@@ -314,7 +312,7 @@ if check_password():
                             try:
                                 with conn.cursor() as c:
                                     for w_name, days in worker_inputs.items():
-                                        if days > 0:
+                                        if days is not None and days > 0:
                                             tjm = float(workers[workers['name'] == w_name]['tjm'].values[0])
                                             clean_days, clean_cost = float(days), float(days) * tjm
                                             c.execute("""INSERT INTO public.labor_logs (date, client_name, worker_name, days, cost, phase) 
@@ -324,6 +322,59 @@ if check_password():
                                 if logs_added > 0: st.success(f"{logs_added} allocation records committed.")
                             finally: conn.close()
             st.dataframe(fetch_data('labor_logs').sort_values(by='date', ascending=False).head(15), hide_index=True, use_container_width=True)
+
+    # ==========================================
+    # VIEW: PAYROLL & DISTRIBUTION
+    # ==========================================
+    elif menu == "Payroll & Distribution":
+        st.title("💸 Payroll & Timesheet Distribution")
+        st.markdown("Track worker hours and calculate total payroll obligations over any time period.")
+        
+        labor_df = fetch_data('labor_logs')
+        if labor_df.empty:
+            st.info("No timesheets logged yet.")
+        else:
+            labor_df['date'] = pd.to_datetime(labor_df['date']).dt.date
+            
+            c1, c2 = st.columns(2)
+            start_date = c1.date_input("Start Date", date.today() - pd.Timedelta(days=7))
+            end_date = c2.date_input("End Date", date.today())
+            
+            mask = (labor_df['date'] >= start_date) & (labor_df['date'] <= end_date)
+            filtered_df = labor_df.loc[mask]
+            
+            if filtered_df.empty:
+                st.warning(f"No labor logged between {start_date} and {end_date}.")
+            else:
+                payroll_summary = filtered_df.groupby('worker_name').agg(Total_Days=('days', 'sum'), Total_Payout=('cost', 'sum')).reset_index()
+                total_payroll, total_man_days = payroll_summary['Total_Payout'].sum(), payroll_summary['Total_Days'].sum()
+                
+                st.markdown("### 📊 Period Summary")
+                m1, m2, m3 = st.columns(3)
+                m1.metric("Total Payroll Obligation", f"{total_payroll:,.2f} DH")
+                m2.metric("Total Man-Days Logged", f"{total_man_days}")
+                m3.metric("Active Technicians", f"{len(payroll_summary)}")
+                st.markdown("---")
+                
+                col_data, col_chart = st.columns([1.5, 1])
+                with col_data:
+                    st.markdown("### 👷 Technician Payouts")
+                    display_df = payroll_summary.copy()
+                    display_df['Total_Payout'] = display_df['Total_Payout'].apply(lambda x: f"{x:,.2f} DH")
+                    display_df = display_df.rename(columns={'worker_name': 'Technician', 'Total_Days': 'Days Logged', 'Total_Payout': 'Total Due'})
+                    st.dataframe(display_df, hide_index=True, use_container_width=True)
+                
+                with col_chart:
+                    st.markdown("### 📈 Days by Technician")
+                    st.bar_chart(payroll_summary.set_index('worker_name')['Total_Days'])
+                
+                with st.expander("🔍 Verify Detailed Daily Logs", expanded=False):
+                    sel_worker = st.selectbox("Filter by Technician", ["All Technicians"] + list(payroll_summary['worker_name']))
+                    detail_df = filtered_df.copy() if sel_worker == "All Technicians" else filtered_df[filtered_df['worker_name'] == sel_worker]
+                    detail_df = detail_df.sort_values(by='date', ascending=False)
+                    detail_df['cost'] = detail_df['cost'].apply(lambda x: f"{x:,.2f} DH")
+                    detail_df = detail_df[['date', 'worker_name', 'client_name', 'phase', 'days', 'cost']].rename(columns={'date': 'Date', 'worker_name': 'Technician', 'client_name': 'Site', 'phase': 'Phase', 'days': 'Days', 'cost': 'Cost (DH)'})
+                    st.dataframe(detail_df, hide_index=True, use_container_width=True)
 
     # ==========================================
     # VIEW: PROCUREMENT & EXPENSES
@@ -339,10 +390,12 @@ if check_password():
                     sel_client = c2.selectbox("Charge to Site", ["Stock / General"] + list(clients['client_name']))
                     sel_phase = c3.selectbox("Material Class", ["Incorporation", "Tirage de Câbles", "Appareillage", "Tableau", "Outillage"])
                     item_desc = st.text_input("Invoice / Manifest Description")
-                    amount = st.number_input("Total Disbursement (DH)", min_value=0.0, step=50.0)
+                    
+                    # 🔥 FIX
+                    amount = st.number_input("Total Disbursement (DH)", min_value=0.0, step=50.0, value=None, placeholder="0.0")
                     
                     if st.form_submit_button("Commit Procurement Log"):
-                        if item_desc and amount > 0:
+                        if item_desc and amount is not None and amount > 0:
                             conn = get_db_connection()
                             try:
                                 with conn.cursor() as c:
@@ -397,9 +450,7 @@ if check_password():
                     sel_client = c1.selectbox("Assign to Site", clients['client_name'])
                     sel_phase = c2.selectbox("Construction Phase", ["Gaines Ouvertes", "Tirage", "Tableau Final", "Problème/Bloquant"])
                     notes = st.text_input("Technical Notes")
-                    
                     uploaded_file = st.file_uploader("Take Photo or Upload", type=['jpg', 'jpeg', 'png'])
-                    
                     if st.form_submit_button("Securely Save to Database"):
                         if uploaded_file is not None:
                             bytes_data = uploaded_file.getvalue()
@@ -419,7 +470,6 @@ if check_password():
             if not photos_df.empty:
                 archive_client = st.selectbox("Filter Archives by Site", ["All Sites"] + list(clients['client_name']))
                 if archive_client != "All Sites": photos_df = photos_df[photos_df['client_name'] == archive_client]
-                
                 cols = st.columns(3)
                 for i, row in photos_df.iterrows():
                     with cols[i % 3]:
@@ -440,21 +490,24 @@ if check_password():
                 item_name = c1.text_input("Material Name (e.g., Câble 1.5mm Rouge)")
                 category = c2.selectbox("Category", ["Câblage", "Gaines", "Appareillage", "Disjoncteurs"])
                 c3, c4 = st.columns(2)
-                qty = c3.number_input("Quantity Received", min_value=1.0, step=1.0)
+                
+                # 🔥 FIX
+                qty = c3.number_input("Quantity Received", min_value=1.0, step=1.0, value=None, placeholder="0")
                 unit = c4.selectbox("Unit of Measurement", ["Rouleaux (100m)", "Mètres", "Unités", "Boîtes"])
                 
                 if st.form_submit_button("Receive Stock"):
-                    conn = get_db_connection()
-                    try:
-                        with conn.cursor() as c:
-                            c.execute("""INSERT INTO public.inventory (item_name, category, quantity, unit) VALUES (%s, %s, %s, %s)
-                                         ON CONFLICT (item_name) DO UPDATE SET quantity = public.inventory.quantity + EXCLUDED.quantity""",
-                                      (item_name.strip(), category, qty, unit))
-                            c.execute("""INSERT INTO public.inventory_logs (date, item_name, change_amount, site_allocated, notes) VALUES (%s, %s, %s, %s, %s)""",
-                                      (str(date.today()), item_name.strip(), qty, "Warehouse Check-In", "Initial Delivery"))
-                        conn.commit()
-                        st.success(f"Received {qty} {unit} of {item_name}.")
-                    finally: conn.close()
+                    if item_name and qty is not None and qty > 0:
+                        conn = get_db_connection()
+                        try:
+                            with conn.cursor() as c:
+                                c.execute("""INSERT INTO public.inventory (item_name, category, quantity, unit) VALUES (%s, %s, %s, %s)
+                                             ON CONFLICT (item_name) DO UPDATE SET quantity = public.inventory.quantity + EXCLUDED.quantity""",
+                                          (item_name.strip(), category, qty, unit))
+                                c.execute("""INSERT INTO public.inventory_logs (date, item_name, change_amount, site_allocated, notes) VALUES (%s, %s, %s, %s, %s)""",
+                                          (str(date.today()), item_name.strip(), qty, "Warehouse Check-In", "Initial Delivery"))
+                            conn.commit()
+                            st.success(f"Received {qty} {unit} of {item_name}.")
+                        finally: conn.close()
 
         with tab2:
             inv_df, clients = fetch_data('inventory'), fetch_data('clients')
@@ -463,20 +516,22 @@ if check_password():
                     c1, c2 = st.columns(2)
                     sel_item = c1.selectbox("Select Material to Deploy", inv_df['item_name'])
                     sel_site = c2.selectbox("Target Site", clients['client_name'])
-                    
                     max_stock = float(inv_df[inv_df['item_name'] == sel_item]['quantity'].values[0])
-                    deploy_qty = st.number_input(f"Quantity to Deploy (Max {max_stock})", min_value=1.0, max_value=max_stock, step=1.0)
+                    
+                    # 🔥 FIX
+                    deploy_qty = st.number_input(f"Quantity to Deploy (Max {max_stock})", min_value=1.0, max_value=max_stock, step=1.0, value=None, placeholder="0")
                     
                     if st.form_submit_button("Deploy to Site"):
-                        conn = get_db_connection()
-                        try:
-                            with conn.cursor() as c:
-                                c.execute("""UPDATE public.inventory SET quantity = quantity - %s WHERE item_name = %s""", (deploy_qty, sel_item))
-                                c.execute("""INSERT INTO public.inventory_logs (date, item_name, change_amount, site_allocated, notes) VALUES (%s, %s, %s, %s, %s)""",
-                                          (str(date.today()), sel_item, -deploy_qty, sel_site, "Deployed to field"))
-                            conn.commit()
-                            st.success(f"Deployed {deploy_qty} to {sel_site}.")
-                        finally: conn.close()
+                        if deploy_qty is not None and deploy_qty > 0:
+                            conn = get_db_connection()
+                            try:
+                                with conn.cursor() as c:
+                                    c.execute("""UPDATE public.inventory SET quantity = quantity - %s WHERE item_name = %s""", (deploy_qty, sel_item))
+                                    c.execute("""INSERT INTO public.inventory_logs (date, item_name, change_amount, site_allocated, notes) VALUES (%s, %s, %s, %s, %s)""",
+                                              (str(date.today()), sel_item, -deploy_qty, sel_site, "Deployed to field"))
+                                conn.commit()
+                                st.success(f"Deployed {deploy_qty} to {sel_site}.")
+                            finally: conn.close()
         
         st.markdown("### Current Stock Levels")
         st.dataframe(fetch_data('inventory'), hide_index=True, use_container_width=True)
@@ -548,9 +603,12 @@ if check_password():
         with st.form("add_worker", clear_on_submit=True):
             c1, c2 = st.columns(2)
             w_name = c1.text_input("Technician Full Name")
-            w_tjm = c2.number_input("Daily Rate / TJM (DH)", min_value=0.0, step=10.0)
+            
+            # 🔥 FIX
+            w_tjm = c2.number_input("Daily Rate / TJM (DH)", min_value=0.0, step=10.0, value=None, placeholder="0.0")
+            
             if st.form_submit_button("Authorize & Add to Roster"):
-                if w_name:
+                if w_name and w_tjm is not None:
                     conn = get_db_connection()
                     try:
                         with conn.cursor() as c: c.execute("""INSERT INTO public.workers (name, tjm) VALUES (%s, %s)""", (w_name.strip(), w_tjm))
