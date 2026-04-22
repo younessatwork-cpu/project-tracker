@@ -108,7 +108,8 @@ if check_password():
                 "Bidding Intelligence", 
                 "Client Portfolios", 
                 "Timesheets", 
-                "Payroll & Distribution",  # 🔥 NEW PAYROLL MENU
+                "Payroll & Distribution",
+                "Efficiency Matrix",
                 "Procurement",
                 "Milestones",
                 "Site Photos",
@@ -121,7 +122,8 @@ if check_password():
                 "graph-up-arrow", 
                 "building", 
                 "clock-history", 
-                "wallet2",                 # 🔥 WALLET ICON
+                "wallet2",
+                "speedometer2",
                 "cart-check",
                 "gear",
                 "camera",
@@ -237,8 +239,6 @@ if check_password():
                 c1, c2, c3 = st.columns(3)
                 c_name = c1.text_input("Client / Owner Name")
                 c_type = c2.selectbox("Facility Type", ["Villa", "Appartement", "Maison", "Bâtiment Commercial", "Maintenance"])
-                
-                # 🔥 FIX: value=None makes the box empty
                 c_points = c3.number_input("Est. Electrical Points", min_value=0, step=5, value=None, placeholder="0")
                 c4, c5 = st.columns(2)
                 c_budget = c4.number_input("Gross Contract Value (DH)", min_value=0.0, step=1000.0, value=None, placeholder="0.0")
@@ -246,7 +246,6 @@ if check_password():
                 
                 if st.form_submit_button("Initialize Portfolio"):
                     if c_name:
-                        # Fallback to 0 if they left it completely blank
                         safe_points = c_points or 0
                         safe_budget = c_budget or 0.0
                         safe_avance = c_avance or 0.0
@@ -302,7 +301,6 @@ if check_password():
                         for i, w_name in enumerate(active_workers):
                             w_tjm = workers[workers['name'] == w_name]['tjm'].values[0]
                             with cols[i % 4]: 
-                                # 🔥 FIX: value=None makes it empty
                                 worker_inputs[w_name] = st.number_input(f"{w_name} (Rate: {w_tjm})", min_value=0.0, max_value=31.0, step=0.5, value=None, placeholder="0.0")
                     
                     if st.form_submit_button("Commit Timesheets"):
@@ -377,6 +375,55 @@ if check_password():
                     st.dataframe(detail_df, hide_index=True, use_container_width=True)
 
     # ==========================================
+    # VIEW: EFFICIENCY MATRIX
+    # ==========================================
+    elif menu == "Efficiency Matrix":
+        st.title("⏱️ Phase Efficiency & Performance")
+        st.markdown("Analyze exactly where your labor hours are going across sites and individual technicians.")
+
+        labor_df = fetch_data('labor_logs')
+
+        if labor_df.empty:
+            st.info("No timesheets logged yet to analyze.")
+        else:
+            tab1, tab2 = st.tabs(["🏗️ Project Phase Breakdown", "👷 Technician Performance"])
+
+            with tab1:
+                st.subheader("Total Days Spent per Phase (By Project)")
+                st.markdown("See exactly how long the 'Incorporation' or 'Tirage' phases are taking for each client.")
+                
+                proj_pivot = pd.pivot_table(labor_df, values='days', index='client_name', columns='phase', aggfunc='sum', fill_value=0)
+                st.dataframe(proj_pivot, use_container_width=True)
+
+                st.markdown("---")
+                st.subheader("Financial Cost per Phase (By Project)")
+                
+                cost_pivot = pd.pivot_table(labor_df, values='cost', index='client_name', columns='phase', aggfunc='sum', fill_value=0)
+                for col in cost_pivot.columns:
+                    cost_pivot[col] = cost_pivot[col].apply(lambda x: f"{x:,.2f} DH")
+                st.dataframe(cost_pivot, use_container_width=True)
+
+            with tab2:
+                st.subheader("Days Logged per Phase (By Technician)")
+                st.markdown("Identify which technicians spend the most time on specific phases.")
+                
+                tech_pivot = pd.pivot_table(labor_df, values='days', index='worker_name', columns='phase', aggfunc='sum', fill_value=0)
+                st.dataframe(tech_pivot, use_container_width=True)
+
+                st.markdown("---")
+                st.markdown("### 🔍 Deep Dive: Technician Profile")
+                sel_tech = st.selectbox("Select Technician to Analyze", labor_df['worker_name'].unique())
+                
+                tech_data = labor_df[labor_df['worker_name'] == sel_tech]
+                tech_phase_summary = tech_data.groupby('phase')['days'].sum().reset_index()
+                
+                c1, c2 = st.columns([1, 2])
+                with c1:
+                    st.dataframe(tech_phase_summary.rename(columns={'phase': 'Phase', 'days': 'Total Days'}), hide_index=True, use_container_width=True)
+                with c2:
+                    st.bar_chart(tech_phase_summary.set_index('phase'))
+
+    # ==========================================
     # VIEW: PROCUREMENT & EXPENSES
     # ==========================================
     elif menu == "Procurement":
@@ -391,7 +438,6 @@ if check_password():
                     sel_phase = c3.selectbox("Material Class", ["Incorporation", "Tirage de Câbles", "Appareillage", "Tableau", "Outillage"])
                     item_desc = st.text_input("Invoice / Manifest Description")
                     
-                    # 🔥 FIX
                     amount = st.number_input("Total Disbursement (DH)", min_value=0.0, step=50.0, value=None, placeholder="0.0")
                     
                     if st.form_submit_button("Commit Procurement Log"):
@@ -491,7 +537,6 @@ if check_password():
                 category = c2.selectbox("Category", ["Câblage", "Gaines", "Appareillage", "Disjoncteurs"])
                 c3, c4 = st.columns(2)
                 
-                # 🔥 FIX
                 qty = c3.number_input("Quantity Received", min_value=1.0, step=1.0, value=None, placeholder="0")
                 unit = c4.selectbox("Unit of Measurement", ["Rouleaux (100m)", "Mètres", "Unités", "Boîtes"])
                 
@@ -518,7 +563,6 @@ if check_password():
                     sel_site = c2.selectbox("Target Site", clients['client_name'])
                     max_stock = float(inv_df[inv_df['item_name'] == sel_item]['quantity'].values[0])
                     
-                    # 🔥 FIX
                     deploy_qty = st.number_input(f"Quantity to Deploy (Max {max_stock})", min_value=1.0, max_value=max_stock, step=1.0, value=None, placeholder="0")
                     
                     if st.form_submit_button("Deploy to Site"):
@@ -604,7 +648,6 @@ if check_password():
             c1, c2 = st.columns(2)
             w_name = c1.text_input("Technician Full Name")
             
-            # 🔥 FIX
             w_tjm = c2.number_input("Daily Rate / TJM (DH)", min_value=0.0, step=10.0, value=None, placeholder="0.0")
             
             if st.form_submit_button("Authorize & Add to Roster"):
