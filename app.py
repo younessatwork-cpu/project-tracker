@@ -705,8 +705,7 @@ elif menu == "Client Portfolios":
             for _, r in clients.iterrows():
                 remaining = r["budget"] - r["advance"]
                 col_name, col_budget, col_collected, col_remaining, col_status, col_btn = st.columns([3,2,2,2,1.5,1.5])
-                col_name.markdown(f"**{r['client_name']}**  
-<small style='color:#64748b'>{r.get('work_type','')} · {int(r['total_points'])} pts</small>", unsafe_allow_html=True)
+                col_name.markdown(f"**{r['client_name']}**  \n<small style='color:#64748b'>{r.get('work_type','')} · {int(r['total_points'])} pts</small>", unsafe_allow_html=True)
                 col_budget.metric("Budget", fmt_dh(r["budget"]))
                 col_collected.metric("Collected", fmt_dh(r["advance"]))
                 col_remaining.metric("Remaining", fmt_dh(remaining), delta=f"{pct(r['advance'],r['budget']):.0f}% paid" if r["budget"] else None)
